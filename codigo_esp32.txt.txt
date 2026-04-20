@@ -1,0 +1,85 @@
+#include <DHT.h>
+
+// ----- DEFINIÇÕES -----
+#define DHTPIN 23
+#define DHTTYPE DHT22
+
+#define N_PIN 32
+#define P_PIN 33
+#define K_PIN 25
+
+#define LDR_PIN 34
+#define RELAY_PIN 26
+
+DHT dht(DHTPIN, DHTTYPE);
+
+// ----- SETUP -----
+void setup() {
+  Serial.begin(115200);
+
+  // Botões com pull-up interno
+  pinMode(N_PIN, INPUT_PULLUP);
+  pinMode(P_PIN, INPUT_PULLUP);
+  pinMode(K_PIN, INPUT_PULLUP);
+
+  pinMode(RELAY_PIN, OUTPUT);
+  digitalWrite(RELAY_PIN, LOW);
+
+  dht.begin();
+}
+
+// ----- LOOP -----
+void loop() {
+  // ----- LEITURA DOS SENSORES -----
+  float umidade = dht.readHumidity();
+  int ldr = analogRead(LDR_PIN);
+
+  // ----- LEITURA DOS BOTÕES -----
+  // INPUT_PULLUP:
+  // solto = HIGH (1)
+  // pressionado = LOW (0)
+  int N = (digitalRead(N_PIN) == LOW) ? 1 : 0;
+  int P = (digitalRead(P_PIN) == LOW) ? 1 : 0;
+  int K = (digitalRead(K_PIN) == LOW) ? 1 : 0;
+
+  int nutrientesAtivos = N + P + K;
+
+  // ----- DEBUG -----
+  Serial.println("-----------");
+
+  Serial.print("Umidade: ");
+  Serial.println(umidade);
+
+  Serial.print("LDR (simulando pH): ");
+  Serial.println(ldr);
+
+  Serial.print("N: ");
+  Serial.print(N);
+  Serial.print(" | P: ");
+  Serial.print(P);
+  Serial.print(" | K: ");
+  Serial.println(K);
+
+  Serial.print("Nutrientes ativos: ");
+  Serial.println(nutrientesAtivos);
+
+  // ----- LÓGICA PRINCIPAL -----
+  bool ligarIrrigacao = false;
+
+  if (!isnan(umidade)) {
+    if (umidade <= 40 && nutrientesAtivos >= 2 && ldr > 1000 && ldr < 3000) {
+      ligarIrrigacao = true;
+    }
+  }
+
+  // ----- ATUAÇÃO -----
+  if (ligarIrrigacao) {
+    digitalWrite(RELAY_PIN, HIGH);
+    Serial.println("Irrigacao LIGADA");
+  } else {
+    digitalWrite(RELAY_PIN, LOW);
+    Serial.println("Irrigacao DESLIGADA");
+  }
+
+  delay(1000);
+}
